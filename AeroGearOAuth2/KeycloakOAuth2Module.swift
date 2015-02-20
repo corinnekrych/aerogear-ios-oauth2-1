@@ -21,7 +21,7 @@ import Foundation
 An OAuth2Module subclass specific to 'Keycloak' authorization
 */
 public class KeycloakOAuth2Module: OAuth2Module {
-       
+    
     public override func revokeAccess(completionHandler: (AnyObject?, NSError?) -> Void) {
         // return if not yet initialized
         if (self.oauth2Session.accessToken == nil) {
@@ -33,7 +33,7 @@ public class KeycloakOAuth2Module: OAuth2Module {
                 completionHandler(nil, error)
                 return
             }
-
+            
             self.oauth2Session.clearTokens()
             completionHandler(response, nil)
         })
@@ -81,7 +81,7 @@ public class KeycloakOAuth2Module: OAuth2Module {
                     let refreshToken: String = unwrappedResponse["refresh_token"] as String
                     let expiration = unwrappedResponse["expires_in"] as NSNumber
                     let exp: String = expiration.stringValue
-
+                    
                     let base64Decoded = self.decode(refreshToken)
                     var refreshExp: String?
                     if let refreshtokenDecoded = base64Decoded {
@@ -99,8 +99,42 @@ public class KeycloakOAuth2Module: OAuth2Module {
         }
     }
     
-    // TODO: Once https://issues.jboss.org/browse/KEYCLOAK-760 is implemented
-    // decoding refresh token to get expiration date should not be needed.
+    // We need to override method to provide refreshExpiration date for Keycloak
+    // Note refresh exp date can be decode from token in Keycloak 1.0
+    // for keyclaok 1.1 "refresh_expires_in" is returned. code only compatible with 1.1 could be simplified see AGIOS-400
+    public override func exchangeAuthorizationCodeForAccessToken(code: String, completionHandler: (AnyObject?, NSError?) -> Void) {
+        var paramDict: [String: String] = ["code": code, "client_id": config.clientId, "redirect_uri": config.redirectURL, "grant_type":"authorization_code"]
+        
+        if let unwrapped = config.clientSecret {
+            paramDict["client_secret"] = unwrapped
+        }
+        
+        http.POST(config.accessTokenEndpoint, parameters: paramDict, completionHandler: {(responseObject, error) in
+            if (error != nil) {
+                completionHandler(nil, error)
+                return
+            }
+            
+            if let unwrappedResponse = responseObject as? [String: AnyObject] {
+                let accessToken: String = unwrappedResponse["access_token"] as NSString
+                let refreshToken: String = unwrappedResponse["refresh_token"] as NSString
+                let expiration = unwrappedResponse["expires_in"] as NSNumber
+                let exp: String = expiration.stringValue
+                let base64Decoded = self.decode(refreshToken)
+                var refreshExp: String?
+                if let refreshtokenDecoded = base64Decoded {
+                    let refresh_iat = refreshtokenDecoded["iat"] as Int
+                    let refresh_exp = refreshtokenDecoded["exp"] as Int
+                    let timeLeft = (refresh_exp - refresh_iat as NSNumber)
+                    refreshExp = timeLeft.stringValue
+                }
+                
+                self.oauth2Session.saveAccessToken(accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: refreshExp)
+                completionHandler(accessToken, nil)
+            }
+        })
+    }
+    
     func decode(token: String) -> [String: AnyObject]? {
         let string = token.componentsSeparatedByString(".")
         let toDecode = string[1] as String
