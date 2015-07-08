@@ -20,33 +20,9 @@ import XCTest
 import AeroGearOAuth2
 
 class ConfigTests: XCTestCase {
-
-    let myConfig1 = Config(base: "http://someserver.com", authzEndpoint: "rest/authz", redirectURL: "redirect", accessTokenEndpoint: "rest/access", clientId: "id", revokeTokenEndpoint: "rest/revoke")
-    let myConfig2 = Config(base: "http://someserver.com/", authzEndpoint: "rest/authz", redirectURL: "redirect", accessTokenEndpoint: "rest/access", clientId: "id", revokeTokenEndpoint: "rest/revoke")
-    let myConfig3 = Config(base: "http://someserver.com/", authzEndpoint: "/rest/authz", redirectURL: "redirect", accessTokenEndpoint: "rest/access", clientId: "id", revokeTokenEndpoint: "rest/revoke")
-    let myConfig4 = Config(base: "http://someserver.com", authzEndpoint: "/rest/authz", redirectURL: "redirect", accessTokenEndpoint: "rest/access", clientId: "id", revokeTokenEndpoint: "rest/revoke")
-    var configs: [Config] = []
-    
-    enum Endpoint {
-        case AuthzCode
-        case AccessToken
-        case RevokeToken
-    }
-    
-    func assertEndpointFormatting(urlString: String, endpoint: Endpoint) {
-        map(configs, {(element: Config) -> () in
-            switch(endpoint) {
-            case .AuthzCode: XCTAssert(element.authzEndpointURL.standardizedURL == NSURL(string: urlString), "correctly formed URL")
-            case .AccessToken: XCTAssert(element.accessTokenEndpointURL.standardizedURL == NSURL(string: urlString), "correctly formed URL")
-            case .RevokeToken: XCTAssert(element.revokeTokenEndpointURL?.standardizedURL == NSURL(string: urlString), "correctly formed URL")
-            default: XCTAssert(false, "no case found")
-            }
-        })
-    }
     
     override func setUp() {
         super.setUp()
-        configs = [myConfig1, myConfig2, myConfig3, myConfig4]
     }
     
     override func tearDown() {
@@ -54,15 +30,65 @@ class ConfigTests: XCTestCase {
         super.tearDown()
     }
     
-    func testComputedAccessURL() {
-        assertEndpointFormatting("http://someserver.com/rest/access", endpoint: .AccessToken)
+    func testGoogleConfigWithoutOpenID() {
+        let googleConfig = GoogleConfig(
+            clientId: "873670803862-g6pjsgt64gvp7r25edgf4154e8sld5nq.apps.googleusercontent.com",
+            scopes:["https://www.googleapis.com/auth/drive"])
+
+        XCTAssert(googleConfig.scopes.filter({$0 == "openid"}) == [], "no openid defined per default")
+        XCTAssert(googleConfig.scopes == ["https://www.googleapis.com/auth/drive"], "no openid defined per default")
     }
     
-    func testComputedAuthzEndpointURL() {
-        assertEndpointFormatting("http://someserver.com/rest/authz", endpoint: .AuthzCode)
+    func testGoogleConfigWithOpenID() {
+        let googleConfig = GoogleConfig(
+            clientId: "873670803862-g6pjsgt64gvp7r25edgf4154e8sld5nq.apps.googleusercontent.com",
+            scopes:["https://www.googleapis.com/auth/drive"],
+            isOpenIDConnect: true)
+
+        XCTAssert(googleConfig.scopes.filter({$0 == "openid"}) == ["openid"], "openid defined for Open ID Connect config")
+        XCTAssert(googleConfig.scopes.filter({$0 == "profile"}) == ["profile"], "profile defined for Open ID Connect config")
+        XCTAssert(googleConfig.scopes.filter({$0 == "email"}) == ["email"], "email defined for Open ID Connect config")
     }
     
-    func testComputedRevokeEndpointURL() {
-        assertEndpointFormatting("http://someserver.com/rest/revoke", endpoint: .RevokeToken)
+    func testFacebookConfigWithoutOpenID() {
+        let facebookConfig = FacebookConfig(
+            clientId: "clientid",
+            clientSecret: "secret",
+            scopes:["photo_upload, publish_actions"])
+        println(facebookConfig.scopes)
+        XCTAssert(facebookConfig.scopes[0].rangeOfString("public_profile") == nil, "no public_profile defined per default")
     }
+    
+    func testFacebookConfigWithOpenID() {
+        let facebookConfig = FacebookConfig(
+            clientId: "clientid",
+            clientSecret: "secret",
+            scopes:["photo_upload, publish_actions"],
+            isOpenIDConnect: true)
+        println(facebookConfig.scopes)
+        XCTAssert(facebookConfig.scopes[0] == "photo_upload, publish_actions, public_profile", "public_profile defined for Open ID Connect config, facebook does not use openid")
+
+    }
+    
+    func testKeycloakConfigWithoutOpenID() {
+        let keycloakConfig = KeycloakConfig(
+            clientId: "shoot-third-party",
+            host: "http://localhost:8080",
+            realm: "shoot-realm")
+        
+        XCTAssert(keycloakConfig.scopes.filter({$0 == "openid"}) == [], "no openid defined per default")
+    }
+    
+    func testkeycloakConfigWithOpenID() {
+        let keycloakConfig = KeycloakConfig(
+            clientId: "shoot-third-party",
+            host: "http://localhost:8080",
+            realm: "shoot-realm",
+            isOpenIDConnect: true)
+        
+        XCTAssert(keycloakConfig.scopes.filter({$0 == "openid"}) == ["openid"], "openid defined for Open ID Connect config")
+        XCTAssert(keycloakConfig.scopes.filter({$0 == "profile"}) == ["profile"], "profile defined for Open ID Connect config")
+        XCTAssert(keycloakConfig.scopes.filter({$0 == "email"}) == ["email"], "email defined for Open ID Connect config")
+    }
+
 }

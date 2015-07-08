@@ -17,111 +17,105 @@
 
 import Foundation
 
-public struct Config {
+/**
+Configuration object to setup an OAuth2 module
+*/
+public class Config {
     /**
-    * Applies the baseURL to the configuration.
+    Applies the baseURL to the configuration.
     */
-    public let base: String
-    
-    public var baseURL:NSURL {
-        get {
-            return NSURL.URLWithString(base)
-        }
-    }
+    public let baseURL: String
     
     /**
-    * Applies the "authorization endpoint" to the request token.
-    */
-    public let authzEndpoint: String
-    
-    public var authzEndpointURL: NSURL {
-        get {
-            if authzEndpoint.hasPrefix("http") {
-                return NSURL(string: authzEndpoint)
-            } else {
-                var formattedEndpoint = authzEndpoint.hasPrefix("/") ? (authzEndpoint as NSString).substringFromIndex(1) : authzEndpoint
-                return baseURL.URLByAppendingPathComponent(formattedEndpoint)
-            }
-        }
-    }
-    
-    /**
-    * Applies the "callback URL" once request token issued.
+    Applies the "callback URL" once request token issued.
     */
     public let redirectURL: String
-    
+
     /**
-    * Applies the "access token endpoint" to the exchange code for access token.
+    Applies the "authorization endpoint" to the request token.
     */
-    public let accessTokenEndpoint: String
+    public var authzEndpoint: String
     
     /**
-    * Computed property to get URL by taking care of extra or missing pre or postfix '/'.
+    Applies the "access token endpoint" to the exchange code for access token.
     */
-    public var accessTokenEndpointURL: NSURL {
-        get {
-            if accessTokenEndpoint.hasPrefix("http") {
-                return NSURL(string: accessTokenEndpoint)
-            } else {
-                var formattedEndpoint = accessTokenEndpoint.hasPrefix("/") ? (accessTokenEndpoint as NSString).substringFromIndex(1) : accessTokenEndpoint
-                return baseURL.URLByAppendingPathComponent(formattedEndpoint)
-            }
-        }
-    }
-    
+    public var accessTokenEndpoint: String
+
     /**
-    * Endpoint for request to invalidate both accessToken and refreshToken.
+    Endpoint for request to invalidate both accessToken and refreshToken.
     */
     public let revokeTokenEndpoint: String?
     
     /**
-    * Computed property to get URL by taking care of extra or missing pre or postfix '/'.
+    Endpoint for request a refreshToken.
     */
-    public var revokeTokenEndpointURL: NSURL? {
+    public let refreshTokenEndpoint: String?
+    
+    /**
+    Endpoint for OpenID Connect to get user information.
+    */
+    public let userInfoEndpoint: String?
+    
+    /**
+    Boolean to indicate whether OpenID Connect on authorization code grant flow is used.
+    */
+    public var isOpenIDConnect: Bool
+    
+    /**
+    Applies the various scopes of the authorization.
+    */
+    public var scopes: [String]
+    
+    var scope: String {
         get {
-            if let unwrappedRevokeTokenEndpoint = revokeTokenEndpoint {
-                if (revokeTokenEndpoint != nil && revokeTokenEndpoint!.hasPrefix("http")) {
-                    return NSURL(string: revokeTokenEndpoint!)
-                } else {
-                    var formattedEndpoint = unwrappedRevokeTokenEndpoint.hasPrefix("/") ? (unwrappedRevokeTokenEndpoint as NSString).substringFromIndex(1) : unwrappedRevokeTokenEndpoint
-                    return baseURL.URLByAppendingPathComponent(formattedEndpoint)
+            // Create a string to concatenate all scopes existing in the _scopes array.
+            var scopeString = ""
+            for scope in self.scopes {
+                scopeString += scope.urlEncode()
+                // If the current scope is other than the last one, then add the "+" sign to the string to separate the scopes.
+                if (scope != self.scopes.last) {
+                    scopeString += "+"
                 }
-            } else {
-                return nil
             }
+            return scopeString
         }
     }
     
     /**
-    * Applies the various scopes of the authorization.
-    */
-    public let scopes: [String]
-    
-    /**
-    * Applies the "client id" obtained with the client registration process.
+    Applies the "client id" obtained with the client registration process.
     */
     public let clientId: String
     
     /**
-    * Applies the "client secret" obtained with the client registration process.
+    Applies the "client secret" obtained with the client registration process.
     */
     public let clientSecret: String?
     
     /**
-    * Account id is used with AccountManager to store tokens. AccountId is defined by the end-user 
-    * and can be any String. If AccountManager is not used, this field is optional.
+    Account id is used with AccountManager to store tokens. AccountId is defined by the end-user
+    and can be any String. If AccountManager is not used, this field is optional.
     */
-    public let accountId: String?
+    public var accountId: String?
     
-    public init(base: String, authzEndpoint: String, redirectURL: String, accessTokenEndpoint: String, clientId: String, revokeTokenEndpoint: String? = nil, scopes: [String] = [],  clientSecret: String? = nil, accountId: String? = nil) {
-        self.base = base
+    /**
+    Boolean to indicate to either used a webview (if true) or an external browser (by default, false)
+    for authorization code grant flow.
+    */
+    public var isWebView: Bool = false
+    
+    public init(base: String, authzEndpoint: String, redirectURL: String, accessTokenEndpoint: String, clientId: String, refreshTokenEndpoint: String? = nil, revokeTokenEndpoint: String? = nil, isOpenIDConnect:Bool = false, userInfoEndpoint: String? = nil, scopes: [String] = [],  clientSecret: String? = nil, accountId: String? = nil, isWebView: Bool = false) {
+        self.baseURL = base
         self.authzEndpoint = authzEndpoint
         self.redirectURL = redirectURL
         self.accessTokenEndpoint = accessTokenEndpoint
+        self.refreshTokenEndpoint = refreshTokenEndpoint
         self.revokeTokenEndpoint = revokeTokenEndpoint
+        self.isOpenIDConnect = isOpenIDConnect ?? false
+        self.userInfoEndpoint = userInfoEndpoint
         self.scopes = scopes
         self.clientId = clientId
         self.clientSecret = clientSecret
         self.accountId = accountId
+        self.isWebView = isWebView
     }
 }

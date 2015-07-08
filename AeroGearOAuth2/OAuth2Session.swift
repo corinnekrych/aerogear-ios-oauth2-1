@@ -16,58 +16,60 @@
 */
 import Foundation
 
-extension String {
-    var doubleValue: Double {
-        return (self as NSString).doubleValue
-    }
-}
-
-public class OAuth2Session {
+/**
+The protocol that an OAuth2 Session modules must adhere to and represent storage of oauth specific metadata. See TrustedPersistantOAuth2Session and UntrustedMemoryOAuth2Session as example implementations
+*/
+public protocol OAuth2Session {
     
     /**
-    * The account id.
+    The account id.
     */
-    public let accountId: String
+    var accountId: String {get}
     
     /**
-    * The access token which expires.
+    The access token which expires.
     */
-    var accessToken: String?
+    var accessToken: String? {get set}
     
     /**
-    * The access token's expiration date.
+    The access token's expiration date.
     */
-    var accessTokenExpirationDate: NSDate?
+    var accessTokenExpirationDate: NSDate? {get set}
     
     /**
-    * The refresh tokens. This toke does not expire and should be used to renew access token when expired.
+    The refresh token's expiration date.
     */
-    var refreshToken: String?
+    var refreshTokenExpirationDate: NSDate? {get set}
     
     /**
-    * Check validity of accessToken. return true if still valid, false when expired.
+    The refresh tokens. This toke does not expire and should be used to renew access token when expired.
     */
-    func tokenIsNotExpired() -> Bool {
-        return self.accessTokenExpirationDate?.timeIntervalSinceDate(NSDate()) > 0 ;
-    }
+    var refreshToken: String? {get set}
     
     /**
-    * Save in memory tokens information. Saving tokens allow you to refresh accesstoken transparently for the user without prompting
-    * for grant access.
+    Check validity of accessToken. return true if still valid, false when expired.
     */
-    func saveAccessToken(accessToken: String? = nil, refreshToken: String? = nil, expiration: String? = nil) {
-        self.accessToken = accessToken
-        self.refreshToken = refreshToken
-        let now = NSDate()
-        if let inter = expiration?.doubleValue {
-            self.accessTokenExpirationDate = now.dateByAddingTimeInterval(inter)
-        }
-    }
+    func tokenIsNotExpired() -> Bool
     
-    public init(accountId: String, accessToken: String? = nil, accessTokenExpirationDate: NSDate? = nil, refreshToken: String? = nil) {
-        self.accessToken = accessToken
-        self.accessTokenExpirationDate = accessTokenExpirationDate
-        self.refreshToken = refreshToken
-        self.accountId = accountId
-    }
+    
+    /**
+    Check validity of refreshToken. return true if still valid, false when expired.
+    */
+    func refreshTokenIsNotExpired() -> Bool
+    
+    /**
+    Clears any tokens storage
+    */
+    func clearTokens()
+    
+    /**
+    Save tokens information. Saving tokens allow you to refresh accesstoken transparently for the user without prompting
+    for grant access.
+    
+    :param: accessToken the access token.
+    :param: refreshToken the refresh token.
+    :param: accessTokenExpiration the expiration for the access token.
+    :param: refreshTokenExpiration the expiration for the refresh token.
+    */
+    func saveAccessToken(accessToken: String?, refreshToken: String?, accessTokenExpiration: String?, refreshTokenExpiration: String?)
 }
