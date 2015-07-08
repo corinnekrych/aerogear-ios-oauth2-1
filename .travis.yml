@@ -5,7 +5,7 @@ xcode_scheme: AeroGearOAuth2Tests
 xcode_sdk: iphonesimulator
 
 matrix:
-	- DESTINATION="OS=7.0,name=iPhone 4S" SCHEME="AeroGearOAuth2Tests" SDK=iphonesimulator8.4 BUILD_EXAMPLE="YES" POD_LINT="NO"
+    - DESTINATION="OS=7.0,name=iPhone 4S" SCHEME="AeroGearOAuth2Tests" SDK=iphonesimulator8.4 BUILD_EXAMPLE="YES" POD_LINT="NO"
     - DESTINATION="OS=8.4,name=iPhone 6 Plus" SCHEME="AeroGearOAuth2Tests" SDK=iphonesimulator8.4 BUILD_EXAMPLE="YES" POD_LINT="NO"
 
 before_install:
